@@ -1,14 +1,162 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.StringTokenizer;
+
 import javafx.application.Application;
+import javafx.scene.Group;
+import javafx.scene.Scene;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Arc;
+import javafx.scene.shape.Ellipse;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 public class DrawApp extends Application{
+	
+	private double width;
+	private double height;
+	private Color color;
+	
   public static void main(String[] args){
     launch(args);
   }
   
+  public double getWidth(){ return width; } 
+  public double getHeight(){ return height; }
+
+  
   @Override
   public void start(Stage stage){
+	  //default width and height are 500 and 300 (+125 because it needs area for message box)
+	  width = 500;
+	  height = 300 + 125;
+	  //default color is black
+	  color = Color.BLACK;
+	  init(stage);
+	  stage.show();
+  }
+  
+  private void init(Stage stage){
+	  Group parent = new Group();
+	  
+	  Group display = readInput(new InputStreamReader(System.in));
+	  parent.getChildren().add(display);
+	  
+	  stage.setResizable(false);
+	  stage.setTitle("Draw App");
+	  stage.setScene(new Scene(parent,width,height));
+  }
+  
+  private Group readInput(InputStreamReader read){
+	  Group gr = new Group();
+	  Text message;
+	  int numLines = 0;
+	  try{
+		  BufferedReader rd = new BufferedReader(read);
+		  String line = rd.readLine();
+		  while(line!=null){
+			  numLines++;
+			  parseLine(gr,line);
+			  line = rd.readLine();
+		  }
+		  message = new Text(15,height-100,"Drawing Image Completed.");
+		  message.setFill(Color.BLACK);
+	  }catch(Exception e){
+		  message = new Text(15,height-100,"Exception thrown while reading line "+numLines+".\n"+e.toString());
+		  message.setFill(Color.RED);
+	  }
+	  message.setFont(new Font(20));
+	  message.setWrappingWidth(width-20);
+	  Rectangle messageBox = new Rectangle(5,height-125,width-10,120);
+	  messageBox.setFill(Color.GRAY);
+	  gr.getChildren().add(messageBox);
+	  gr.getChildren().add(message);
+	  return gr;
+  }
+  
+  private void parseLine(Group gr, String line) throws Exception{
+	  String command = line.substring(0, 2);
+	  StringTokenizer param = new StringTokenizer(line.substring(2));
+	  if(command.equals("DL")){
+		  drawLine(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param));
+	  }else if(command.equals("DR")){
+		  drawRect(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param));
+	  }else if(command.equals("DO")){
+		  drawOval(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param));
+	  }else if(command.equals("FR")){
+		  fillRect(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param));
+	  }else if(command.equals("DA")){
+		  drawArc(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param),toDouble(param),toDouble(param));
+	  }else if(command.equals("DS")){
+		  drawString(gr,param.nextToken(),toDouble(param),toDouble(param));
+	  }else if(command.equals("FO")){
+		  fillOval(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param));
+	  }else if(command.equals("SC")){
+		  setColor(param.nextToken());
+	  }
+  }
+  
+  private void setColor(String col) throws Exception{
+	    color = Color.valueOf(col);
+  }
 
+private void fillOval(Group gr, double x, double y, double w, double h) {
+	Ellipse el = new Ellipse(x,y,w,h);
+	el.setFill(color);
+	gr.getChildren().add(el);
+}
+
+private void drawString(Group gr, String str, double x, double y) {
+	Text tx = new Text(x,y,str);
+	tx.setFill(color);
+	tx.setFont(new Font(15));
+	gr.getChildren().add(tx);	
+}
+
+private void drawArc(Group gr, double centerX, double centerY, double radiusX, double radiusY, double startAngle, double length) {
+	Arc ar = new Arc(centerX,centerY,radiusX,radiusY,startAngle,length);
+	ar.setStroke(color);
+	gr.getChildren().add(ar);	
+}
+
+private void fillRect(Group gr, double x, double y, double w, double h) {
+	Rectangle rc = new Rectangle(x,y,w,h);
+	rc.setFill(color);
+	gr.getChildren().add(rc);
+}
+
+private void drawOval(Group gr, double x, double y, double w, double h) {
+	Ellipse el = new Ellipse(x,y,w,h);
+	el.setFill(Color.TRANSPARENT);
+	el.setStroke(color);
+	el.setStrokeWidth(2);
+	gr.getChildren().add(el);
+}
+
+private void drawRect(Group gr, double x, double y, double w, double h) {
+	Rectangle rc = new Rectangle(x,y,w,h);
+	rc.setFill(Color.TRANSPARENT);
+	rc.setStroke(color);
+	rc.setStrokeWidth(2);
+	gr.getChildren().add(rc);
+}
+
+private void drawLine(Group gr, double x1, double y1, double x2,
+		double y2) {
+	Line ln = new Line(x1,y1,x2,y2);
+	ln.setStroke(color);
+	gr.getChildren().add(ln);
+}
+
+private double toDouble(StringTokenizer st) throws Exception{
+	  if(st.hasMoreTokens()){
+		  return Double.parseDouble(st.nextToken());
+	  }else{
+		  throw new InvalidCommandException("There is no parameter.");
+	  }
   }
 
 }
