@@ -179,6 +179,7 @@ public class DrawApp extends Application{
 	  Group gr = new Group();
 	  Text message;
 	  int numLines = 0;
+	  color = Color.BLACK;
 	  try{
 		  for(int i=0;i<list.size();i++){
 			  numLines++;
