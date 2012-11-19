@@ -1,10 +1,16 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Arc;
 import javafx.scene.shape.Ellipse;
@@ -13,12 +19,16 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 public class DrawApp extends Application{
 	
 	private double width;
 	private double height;
 	private Color color;
+	private boolean end;
+	private int step;
+	private ArrayList<String> list;
 	
   public static void main(String[] args){
     launch(args);
@@ -35,32 +45,102 @@ public class DrawApp extends Application{
 	  height = 300 + 125;
 	  //default color is black
 	  color = Color.BLACK;
+	  end = false;
+	  step = 0;
 	  init(stage);
 	  stage.show();
   }
   
-  private void init(Stage stage){
-	  Group parent = new Group();
+  private void init(final Stage stage){
+	  list = getLines(new InputStreamReader(System.in));
 	  
-	  Group display = readInput(new InputStreamReader(System.in));
-	  parent.getChildren().add(display);
-	  
+	  final Group parent = new Group();
 	  stage.setResizable(false);
 	  stage.setTitle("Draw App");
 	  stage.setScene(new Scene(parent,width,height));
+	  
+	  Rectangle messageBox = new Rectangle(5,height-125,width-10,120);
+	  messageBox.setFill(Color.GRAY);
+	  parent.getChildren().add(messageBox);
+	  
+	  final Group btn1 = new Group();
+	  final Button one = new Button();
+	  one.setText("Execute the program non-stopping");
+	  one.setOnAction(new EventHandler<ActionEvent>(){
+		  @Override
+		  public void handle(ActionEvent event) { 
+			  Group parent = new Group();
+
+			  Group display = readInput(Integer.MAX_VALUE);
+			  parent.getChildren().add(display);
+
+			  stage.setResizable(false);
+			  stage.setTitle("Draw App");
+			  stage.setScene(new Scene(parent,width,height));
+		  }
+	  });
+	  btn1.getChildren().add(one);
+	  btn1.setTranslateX(15);
+	  btn1.setTranslateY(height-120);
+	  
+	  final Group btn2 = new Group();
+	  final Button two = new Button();
+	  two.setText("Execute single line");
+	  two.setOnAction(new EventHandler<ActionEvent>(){
+		  @Override
+		  public void handle(ActionEvent event) {
+			  step++;
+			  Group parent = new Group();
+
+			  Group display = readInput(step);
+			  parent.getChildren().add(display);
+			  if(!end){
+				  parent.getChildren().add(btn1);
+				  parent.getChildren().add(btn2);
+			  }
+
+			  stage.setResizable(false);
+			  stage.setTitle("Draw App");
+			  stage.setScene(new Scene(parent,width,height));
+		  }
+	  });
+	  btn2.getChildren().add(two);
+	  btn2.setTranslateX(15);
+	  btn2.setTranslateY(height-80);
+	  
+	  parent.getChildren().add(btn1);
+	  parent.getChildren().add(btn2);
+	  
   }
   
-  private Group readInput(InputStreamReader read){
-	  Group gr = new Group();
-	  Text message;
-	  int numLines = 0;
+  private ArrayList<String> getLines(InputStreamReader read){
+	  ArrayList<String> als = new ArrayList<String>();
 	  try{
 		  BufferedReader rd = new BufferedReader(read);
 		  String line = rd.readLine();
 		  while(line!=null){
-			  numLines++;
-			  parseLine(gr,line);
+			  als.add(line);
 			  line = rd.readLine();
+		  }
+	  }catch(Exception e){  
+	  }
+	  return als;
+  }
+  
+  private Group readInput(int numStep){
+	  Group gr = new Group();
+	  Text message;
+	  int numLines = 0;
+	  try{
+		  for(int i=0;i<list.size();i++){
+			  numLines++;
+			  parseLine(gr,list.get(i));
+			  if(numLines==numStep&&!(numStep==list.size())){
+				  Rectangle messageBox = new Rectangle(5,height-125,width-10,120);
+				  messageBox.setFill(Color.GRAY);
+				  gr.getChildren().add(messageBox);
+				  return gr;
+			  }
 		  }
 		  message = new Text(15,height-100,"Drawing Image Completed.");
 		  message.setFill(Color.BLACK);
@@ -68,6 +148,7 @@ public class DrawApp extends Application{
 		  message = new Text(15,height-100,"Exception thrown while reading line "+numLines+".\n"+e.toString());
 		  message.setFill(Color.RED);
 	  }
+	  end = true;
 	  message.setFont(new Font(20));
 	  message.setWrappingWidth(width-20);
 	  Rectangle messageBox = new Rectangle(5,height-125,width-10,120);
@@ -96,7 +177,19 @@ public class DrawApp extends Application{
 		  fillOval(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param));
 	  }else if(command.equals("SC")){
 		  setColor(param.nextToken());
+	  }else if(command.equals("CD")){
+		  changeDimension(toDouble(param),toDouble(param));
 	  }
+  }
+  
+  private void changeDimension(double x, double y) throws Exception{
+	  if(x<=0){
+		  throw new TooSmallValueException("width",x);
+	  }else if(y<=0){
+		  throw new TooSmallValueException("height",y);
+	  }
+	  width = x;
+	  height = y + 125;
   }
   
   private void setColor(String col) throws Exception{
