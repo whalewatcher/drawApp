@@ -1,20 +1,29 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
+import javax.imageio.ImageIO;
+
 import javafx.application.Application;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Paint;
+import javafx.scene.paint.Stop;
 import javafx.scene.shape.Arc;
 import javafx.scene.shape.Ellipse;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -25,10 +34,12 @@ public class DrawApp extends Application{
 	
 	private double width;
 	private double height;
-	private Color color;
+	private Paint color;
 	private boolean end;
 	private int step;
 	private ArrayList<String> list;
+	private Paint turtleColor;
+	private double turtleSize;
 	
   public static void main(String[] args){
     launch(args);
@@ -45,6 +56,9 @@ public class DrawApp extends Application{
 	  height = 300 + 125;
 	  //default color is black
 	  color = Color.BLACK;
+	  //default turtle is black, and size is two
+	  turtleColor = Color.BLACK;
+	  turtleSize = 2;
 	  end = false;
 	  step = 0;
 	  init(stage);
@@ -63,6 +77,33 @@ public class DrawApp extends Application{
 	  messageBox.setFill(Color.GRAY);
 	  parent.getChildren().add(messageBox);
 	  
+	  final Group save = new Group();
+	  final Button three = new Button();
+	  three.setText("Save Image to File");
+	  three.setOnAction(new EventHandler<ActionEvent>(){
+		  @Override
+		  public void handle(ActionEvent event) {
+			  //save to file
+			  try{
+				  ImageIO.write(SwingFXUtils.fromFXImage(stage.getScene().snapshot(null), null),
+				  "png",
+				  new File("savedFile.png"));
+			  }catch(Exception e){
+				  Stage ems = new Stage(StageStyle.UTILITY);
+				  Group g = new Group();
+				  ems.setScene(new Scene(g,200,20));
+				  ems.setTitle("Error");
+				  Text em = new Text(15,15,"Error Writing File");
+				  em.setFont(new Font(10));
+				  g.getChildren().add(em);
+				  ems.show();
+			  }
+		  }
+	  });
+	  save.getChildren().add(three);
+	  save.setTranslateX(width-150);
+	  save.setTranslateY(height-30);
+	  
 	  final Group btn1 = new Group();
 	  final Button one = new Button();
 	  one.setText("Execute the program non-stopping");
@@ -73,6 +114,9 @@ public class DrawApp extends Application{
 
 			  Group display = readInput(Integer.MAX_VALUE);
 			  parent.getChildren().add(display);
+			  parent.getChildren().add(save);
+			  save.setTranslateX(width-150);
+			  save.setTranslateY(height-30);
 
 			  stage.setResizable(false);
 			  stage.setTitle("Draw App");
@@ -97,7 +141,11 @@ public class DrawApp extends Application{
 			  if(!end){
 				  parent.getChildren().add(btn1);
 				  parent.getChildren().add(btn2);
+			  }else{
+				  parent.getChildren().add(save);
 			  }
+			  save.setTranslateX(width-150);
+			  save.setTranslateY(height-30);
 
 			  stage.setResizable(false);
 			  stage.setTitle("Draw App");
@@ -179,10 +227,77 @@ public class DrawApp extends Application{
 		  setColor(param.nextToken());
 	  }else if(command.equals("CD")){
 		  changeDimension(toDouble(param),toDouble(param));
+	  }else if(command.equals("DI")){
+		  displayImage(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param),param.nextToken());
+	  }else if(command.equals("CG")){
+		  setColorGradient(toDouble(param),toDouble(param),toDouble(param),toDouble(param),Integer.parseInt(param.nextToken()),param.nextToken(),param.nextToken(),param.nextToken(),toDouble(param));
+	  }else if(command.equals("DP")){
+		  ArrayList<Double> lists = new ArrayList<Double>();
+		  while(param.hasMoreTokens()){
+			  lists.add(toDouble(param));
+		  }
+		  double[] points = new double[lists.size()];
+		  for(int i=0;i<points.length;i++){
+			  points[i] = lists.get(i);
+		  }
+		  drawPolygon(gr,points);
+	  }else if(command.equals("FP")){
+		  ArrayList<Double> lists = new ArrayList<Double>();
+		  while(param.hasMoreTokens()){
+			  lists.add(toDouble(param));
+		  }
+		  double[] points = new double[lists.size()];
+		  for(int i=0;i<points.length;i++){
+			  points[i] = lists.get(i);
+		  }
+		  fillPolygon(gr,points);
+	  }else if(command.equals("TL")){
+		  drawLine(gr,toDouble(param),toDouble(param),toDouble(param),toDouble(param),turtleColor,turtleSize);
+	  }else if(command.equals("TC")){
+		  setTurtleColor(param.nextToken());
+	  }else if(command.equals("TS")){
+		  setTurtleSize(toDouble(param));
 	  }
   }
   
-  private void changeDimension(double x, double y) throws Exception{
+  private void setTurtleSize(double size) {
+	turtleSize = size;	
+}
+
+private void drawPolygon(Group gr, double[] points) {
+		Polygon pl = new Polygon(points);
+		pl.setFill(Color.TRANSPARENT);
+		pl.setStroke(color);
+		pl.setStrokeWidth(2);
+		gr.getChildren().add(pl);
+	}
+  
+  private void fillPolygon(Group gr, double[] points) {
+	Polygon pl = new Polygon(points);
+	pl.setFill(color);
+	gr.getChildren().add(pl);
+}
+
+private void setColorGradient(double x1, double y1, double x2, double y2, int proportional, String cycleMethod, String color1, String color2, double offset) {
+	  boolean p = !(proportional==0);
+	  CycleMethod cm = CycleMethod.valueOf(cycleMethod);
+	  Stop[] stops = new Stop[] { new Stop(0, Color.valueOf(color1)), new Stop(offset, Color.valueOf(color2))};
+	  LinearGradient lg = new LinearGradient(x1,y1,x2,y2,p,cm,stops);
+	  color = lg;	
+}
+
+private void displayImage(Group gr, double x, double y, double width, double height, String fileName) {
+	Image im = new Image(fileName);
+	ImageView iv = new ImageView();
+	iv.setImage(im);
+	iv.setX(x);
+	iv.setY(y);
+	iv.setFitWidth(width);
+	iv.setFitHeight(height);
+	gr.getChildren().add(iv);
+  }
+
+private void changeDimension(double x, double y) throws Exception{
 	  if(x<=0){
 		  throw new TooSmallValueException("width",x);
 	  }else if(y<=0){
@@ -195,6 +310,10 @@ public class DrawApp extends Application{
   private void setColor(String col) throws Exception{
 	    color = Color.valueOf(col);
   }
+  
+  private void setTurtleColor(String col) throws Exception{
+	    turtleColor = Color.valueOf(col);
+}
 
 private void fillOval(Group gr, double x, double y, double w, double h) {
 	Ellipse el = new Ellipse(x,y,w,h);
@@ -237,11 +356,15 @@ private void drawRect(Group gr, double x, double y, double w, double h) {
 	gr.getChildren().add(rc);
 }
 
-private void drawLine(Group gr, double x1, double y1, double x2,
-		double y2) {
+private void drawLine(Group gr, double x1, double y1, double x2, double y2, Paint c, double size) {
 	Line ln = new Line(x1,y1,x2,y2);
-	ln.setStroke(color);
+	ln.setStroke(c);
+	ln.setStrokeWidth(size);
 	gr.getChildren().add(ln);
+}
+
+private void drawLine(Group gr, double x1, double y1, double x2, double y2) {
+	drawLine(gr,x1,y1,x2,y2,color,2);
 }
 
 private double toDouble(StringTokenizer st) throws Exception{
